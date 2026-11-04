@@ -42,6 +42,9 @@ export default function BookingListPage() {
   const [detailBooking, setDetailBooking] = useState<Booking | null>(null)
   const [cancelTarget, setCancelTarget] = useState<Booking | null>(null)
   const [reviewTarget, setReviewTarget] = useState<Booking | null>(null)
+  // GET /tutors/{id}/reviews không trả bookingId nên không có cách nào hỏi backend "buổi này đã review chưa";
+  // danh sách này do client ghi nhận trong phiên và tự sửa khi backend báo 409 REVIEW_EXISTS.
+  const [reviewedIds, setReviewedIds] = useState<number[]>([])
   const [recurringOpen, setRecurringOpen] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
   const oneOff = role === 'PARENT' ? oneOffFromParams(searchParams) : null
@@ -143,6 +146,7 @@ export default function BookingListPage() {
                     booking={booking}
                     role={role}
                     pending={pendingId === booking.id}
+                    reviewed={reviewedIds.includes(booking.id)}
                     onAction={(action: BookingAction, b) => run(action, b.id)}
                     onCancel={setCancelTarget}
                     onReview={setReviewTarget}
@@ -159,7 +163,14 @@ export default function BookingListPage() {
 
       {cancelTarget && <CancelBookingDialog key={cancelTarget.id} booking={cancelTarget} onClose={() => setCancelTarget(null)} />}
 
-      {reviewTarget && <ReviewDialog key={reviewTarget.id} booking={reviewTarget} onClose={() => setReviewTarget(null)} />}
+      {reviewTarget && (
+        <ReviewDialog
+          key={reviewTarget.id}
+          booking={reviewTarget}
+          onReviewed={() => setReviewedIds((prev) => (prev.includes(reviewTarget.id) ? prev : [...prev, reviewTarget.id]))}
+          onClose={() => setReviewTarget(null)}
+        />
+      )}
 
       {recurringOpen && <NewRecurringDialog onClose={() => setRecurringOpen(false)} />}
 

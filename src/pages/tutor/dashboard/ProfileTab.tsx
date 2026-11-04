@@ -265,7 +265,7 @@ export default function ProfileTab() {
           {needsSubmit ? (
             <p className="text-sm text-slate-500">
               Lưu xong hãy sang{' '}
-              <Link to="/tutor/documents" className="font-medium text-brand-600 hover:underline">tab Giấy tờ</Link>{' '}
+              <Link to="/tutor/documents" className="font-medium text-brand-600 hover:underline">mục Giấy tờ</Link>{' '}
               để nộp hồ sơ duyệt.
             </p>
           ) : (

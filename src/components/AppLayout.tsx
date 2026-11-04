@@ -8,7 +8,11 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  GraduationCap,
+  IdCard,
   Inbox,
+  KeyRound,
+  LogIn,
   LogOut,
   Mail,
   Menu,
@@ -16,6 +20,7 @@ import {
   Settings,
   Shield,
   UserCog,
+  UserPlus,
   Users,
   X,
 } from 'lucide-react'
@@ -36,7 +41,8 @@ interface Branch {
   key: string
   label: string
   icon: ReactNode
-  children: Leaf[]
+  /** Lá hoặc nhánh con (mức 3) — nhánh lồng nhau dùng cho "Gia sư > Hồ sơ của tôi > …". */
+  children: Node[]
 }
 
 type Node = Leaf | Branch
@@ -51,6 +57,10 @@ const leafClass = ({ isActive }: { isActive: boolean }) =>
 
 function isLeafActive(leaf: Leaf, pathname: string): boolean {
   return leaf.exact ? pathname === leaf.to : pathname === leaf.to || pathname.startsWith(`${leaf.to}/`)
+}
+
+function isNodeActive(node: Node, pathname: string): boolean {
+  return isBranch(node) ? node.children.some((child) => isNodeActive(child, pathname)) : isLeafActive(node, pathname)
 }
 
 export function AppLayout() {
@@ -147,18 +157,8 @@ export function AppLayout() {
 
           {menuOpen && (
             <div className="max-h-[70vh] overflow-y-auto border-t border-slate-100 bg-white px-4 py-3">
+              {/* Đăng nhập/Đăng ký đã là mục trong cây điều hướng nên drawer không cần lặp lại. */}
               <NavTree nodes={nodes} onNavigate={() => setMenuOpen(false)} />
-              {/* Đã đăng xuất nằm trong UserMenu ở thanh ngang nên drawer chỉ lo phần chưa đăng nhập. */}
-              {!user && (
-                <div className="mt-3 flex flex-col gap-1">
-                  <NavLink to="/login" className={leafClass} onClick={() => setMenuOpen(false)}>
-                    Đăng nhập
-                  </NavLink>
-                  <NavLink to="/register" className={leafClass} onClick={() => setMenuOpen(false)}>
-                    Đăng ký
-                  </NavLink>
-                </div>
-              )}
             </div>
           )}
         </header>
@@ -201,13 +201,11 @@ function Breadcrumb({ nodes }: { nodes: Node[] }) {
 
 function findActiveTrail(pathname: string, nodes: Node[]): string[] | null {
   for (const node of nodes) {
-    if (!isBranch(node)) {
-      if (isLeafActive(node, pathname)) return [node.label]
-      continue
-    }
-    for (const child of node.children) {
-      if (isLeafActive(child, pathname)) return [node.label, child.label]
-    }
+    if (!isNodeActive(node, pathname)) continue
+    if (!isBranch(node)) return [node.label]
+    const childTrail = findActiveTrail(pathname, node.children)
+    if (childTrail == null) return [node.label]
+    return [node.label, ...childTrail]
   }
   return null
 }
@@ -339,59 +337,97 @@ function NavTree({ nodes, onNavigate }: { nodes: Node[]; onNavigate: () => void 
 
   return (
     <ul className="space-y-1">
-      {nodes.map((node) => {
-        if (!isBranch(node)) {
-          return (
-            <li key={node.to}>
-              <NavLink to={node.to} end={node.exact} className={leafClass} onClick={onNavigate}>
-                {node.icon}
-                {node.label}
-              </NavLink>
-            </li>
-          )
-        }
-
-        const active = node.children.some((child) => isLeafActive(child, pathname))
-        const open = manual[node.key] ?? active
-
-        return (
-          <li key={node.key}>
-            <button
-              type="button"
-              onClick={() => setManual((prev) => ({ ...prev, [node.key]: !open }))}
-              aria-expanded={open}
-              className={clsx(
-                // text-left là cần thiết: UA stylesheet cho <button> text-align:center, nếu bỏ thì nhãn branch bị căn giữa lệch với lá.
-                'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-semibold transition',
-                active ? 'text-brand-700' : 'text-slate-700 hover:bg-slate-100',
-              )}
-            >
-              {node.icon}
-              <span className="min-w-0 flex-1 truncate">{node.label}</span>
-              <ChevronRight className={clsx('size-4 shrink-0 text-slate-400 transition-transform', open && 'rotate-90')} />
-            </button>
-
-            {open && (
-              <ul className="mt-1 space-y-1 border-l border-slate-200 pl-2">
-                {node.children.map((child) => (
-                  <li key={child.to}>
-                    <NavLink to={child.to} end={child.exact} className={leafClass} onClick={onNavigate}>
-                      {child.icon}
-                      {child.label}
-                    </NavLink>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </li>
-        )
-      })}
+      {nodes.map((node) => (
+        <NavNode
+          key={isBranch(node) ? node.key : node.to}
+          node={node}
+          depth={0}
+          pathname={pathname}
+          onNavigate={onNavigate}
+          manual={manual}
+          setManual={setManual}
+        />
+      ))}
     </ul>
+  )
+}
+
+interface NavNodeProps {
+  node: Node
+  depth: number
+  pathname: string
+  onNavigate: () => void
+  manual: Record<string, boolean>
+  setManual: (update: (prev: Record<string, boolean>) => Record<string, boolean>) => void
+}
+
+function NavNode({ node, depth, pathname, onNavigate, manual, setManual }: NavNodeProps) {
+  if (!isBranch(node)) {
+    return (
+      <li>
+        <NavLink to={node.to} end={node.exact} className={leafClass} onClick={onNavigate}>
+          {node.icon}
+          {node.label}
+        </NavLink>
+      </li>
+    )
+  }
+
+  const active = isNodeActive(node, pathname)
+  const open = manual[node.key] ?? active
+
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => setManual((prev) => ({ ...prev, [node.key]: !open }))}
+        aria-expanded={open}
+        className={clsx(
+          // text-left là cần thiết: UA stylesheet cho <button> text-align:center, nếu bỏ thì nhãn branch bị căn giữa lệch với lá.
+          'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition',
+          depth === 0 ? 'font-semibold' : 'font-medium',
+          active ? 'text-brand-700' : 'text-slate-700 hover:bg-slate-100',
+        )}
+      >
+        {node.icon}
+        <span className="min-w-0 flex-1 truncate">{node.label}</span>
+        <ChevronRight className={clsx('size-4 shrink-0 text-slate-400 transition-transform', open && 'rotate-90')} />
+      </button>
+
+      {open && (
+        <ul className="mt-1 space-y-1 border-l border-slate-200 pl-2">
+          {node.children.map((child) => (
+            <NavNode
+              key={isBranch(child) ? child.key : child.to}
+              node={child}
+              depth={depth + 1}
+              pathname={pathname}
+              onNavigate={onNavigate}
+              manual={manual}
+              setManual={setManual}
+            />
+          ))}
+        </ul>
+      )}
+    </li>
   )
 }
 
 function buildNavTree(role: string | undefined): Node[] {
   const nodes: Node[] = [{ to: '/tutors', label: 'Tìm gia sư', icon: <Search className="size-4" /> }]
+
+  if (role === undefined) {
+    nodes.push({
+      key: 'auth',
+      label: 'Tài khoản',
+      icon: <LogIn className="size-4" />,
+      children: [
+        { to: '/login', label: 'Đăng nhập', icon: <LogIn className="size-4" /> },
+        { to: '/register', label: 'Đăng ký', icon: <UserPlus className="size-4" /> },
+        { to: '/forgot-password', label: 'Quên mật khẩu', icon: <KeyRound className="size-4" /> },
+      ],
+    })
+  }
 
   if (role === 'PARENT') {
     nodes.push({
@@ -409,9 +445,20 @@ function buildNavTree(role: string | undefined): Node[] {
     nodes.push({
       key: 'tutor',
       label: 'Gia sư',
-      icon: <UserCog className="size-4" />,
+      icon: <GraduationCap className="size-4" />,
       children: [
-        { to: '/tutor', label: 'Hồ sơ của tôi', icon: <Settings className="size-4" /> },
+        {
+          key: 'tutor-dashboard',
+          label: 'Hồ sơ của tôi',
+          icon: <UserCog className="size-4" />,
+          children: [
+            { to: '/tutor', label: 'Hồ sơ', icon: <IdCard className="size-4" />, exact: true },
+            { to: '/tutor/subjects', label: 'Môn dạy', icon: <BookOpen className="size-4" /> },
+            { to: '/tutor/availability', label: 'Lịch rảnh', icon: <CalendarDays className="size-4" /> },
+            { to: '/tutor/documents', label: 'Giấy tờ', icon: <FileText className="size-4" /> },
+            { to: '/tutor/account', label: 'Tài khoản', icon: <Settings className="size-4" /> },
+          ],
+        },
         { to: '/requests', label: 'Việc tìm gia sư', icon: <FileText className="size-4" /> },
         { to: '/applications/mine', label: 'Đơn đã ứng tuyển', icon: <Inbox className="size-4" /> },
       ],

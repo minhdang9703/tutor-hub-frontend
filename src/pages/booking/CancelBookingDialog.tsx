@@ -5,7 +5,6 @@ import { TriangleAlert } from 'lucide-react'
 import { cancelBooking } from '../../api/booking'
 import type { Booking } from '../../api/types'
 import { formatDateTime } from '../../lib/format'
-import { showApiError } from '../../lib/useMutationErrorToast'
 import { Button, Textarea } from '../../components/ui'
 import { CANCEL_MIN_HOURS, hoursUntilStart, invalidateBooking, timeRange, useSubjectNames } from './bookingLogic'
 
@@ -28,8 +27,7 @@ export default function CancelBookingDialog({ booking, onClose }: Props) {
       toast.success('Đã hủy buổi học.')
       onClose()
     },
-    //Backend trả 409 khi ngoài thời gian cho phép — hiển thị nguyên văn thông báo của server.
-    onError: (error) => showApiError(error),
+    // Không khai báo onError: MutationErrorToaster toàn cục đã toast, khai báo nữa là thành hai toast trùng.
   })
 
   const hoursLeft = Math.max(0, hoursUntilStart(booking.startAt))

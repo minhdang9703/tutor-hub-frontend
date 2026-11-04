@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ChevronRight, MapPin, Phone, Star, Video } from 'lucide-react'
+import { BadgeCheck, ChevronRight, MapPin, Phone, Star, Video } from 'lucide-react'
 import type { Booking, Role } from '../../api/types'
 import { SESSION_MODE_LABEL, BOOKING_STATUS_LABEL, STATUS_TONE } from '../../lib/labels'
 import { durationMinutes, formatDateTime, formatVnd } from '../../lib/format'
@@ -23,13 +23,15 @@ interface Props {
   booking: Booking
   role: Role
   pending: boolean
+  /** Backend không lộ bookingId trong danh sách review nên cờ này do trang lịch học theo dõi tại client. */
+  reviewed: boolean
   onAction: (action: BookingAction, booking: Booking) => void
   onCancel: (booking: Booking) => void
   onReview: (booking: Booking) => void
   onOpen: (booking: Booking) => void
 }
 
-export default function BookingRowCard({ booking, role, pending, onAction, onCancel, onReview, onOpen }: Props) {
+export default function BookingRowCard({ booking, role, pending, reviewed, onAction, onCancel, onReview, onOpen }: Props) {
   const actions = availableActions(booking, role)
   const mayCancel = canCancel(booking, role)
   const mayReview = canReview(booking, role)
@@ -107,11 +109,16 @@ export default function BookingRowCard({ booking, role, pending, onAction, onCan
                 {ACTION_LABEL[action]}
               </Button>
             ))}
-            {mayReview && (
-              <Button className="px-3 py-1.5" onClick={() => onReview(booking)}>
-                <Star className="size-4" /> Đánh giá
-              </Button>
-            )}
+            {mayReview &&
+              (reviewed ? (
+                <Button variant="secondary" className="px-3 py-1.5" disabled title="Buổi học này đã có đánh giá.">
+                  <BadgeCheck className="size-4" /> Đã đánh giá
+                </Button>
+              ) : (
+                <Button className="px-3 py-1.5" onClick={() => onReview(booking)}>
+                  <Star className="size-4" /> Đánh giá
+                </Button>
+              ))}
             {mayCancel && (
               <Button variant="danger" className="px-3 py-1.5" disabled={pending} onClick={() => onCancel(booking)}>
                 Hủy

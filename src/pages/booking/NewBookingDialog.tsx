@@ -8,7 +8,6 @@ import { fetchChildren } from '../../api/parent'
 import type { BookingInput, SessionMode, TeachingMode } from '../../api/types'
 import { SESSION_MODE_LABEL } from '../../lib/labels'
 import { formatVnd } from '../../lib/format'
-import { showApiError } from '../../lib/useMutationErrorToast'
 import { Button, Input, Select, Spinner } from '../../components/ui'
 import { invalidateBooking } from './bookingLogic'
 
@@ -113,7 +112,7 @@ export default function NewBookingDialog({ tutorId, date, start, end, onClose }:
       toast.success('Đã gửi yêu cầu đặt lịch. Gia sư sẽ xác nhận trước buổi học.')
       onClose()
     },
-    onError: (error) => showApiError(error),
+    // MutationErrorToaster toàn cục lo phần toast lỗi; khai báo onError ở đây sẽ nhân đôi toast.
   })
 
   return (

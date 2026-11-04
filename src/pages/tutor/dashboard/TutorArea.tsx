@@ -1,17 +1,12 @@
-import { Link, NavLink, Route, Routes } from 'react-router-dom'
+import { Link, Route, Routes } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { clsx } from 'clsx'
 import {
   AlertTriangle,
-  BookOpen,
-  CalendarDays,
   CheckCircle2,
   Clock,
   ExternalLink,
-  FileText,
-  Settings,
   Upload,
-  UserCog,
 } from 'lucide-react'
 import { fetchMyTutorProfile } from '../../../api/tutor'
 import type { VerificationStatus } from '../../../api/types'
@@ -23,21 +18,13 @@ import AvailabilityTab from './AvailabilityTab'
 import DocumentsTab from './DocumentsTab'
 import AccountTab from './AccountTab'
 
-const TABS = [
-  { to: '/tutor', label: 'Hồ sơ', icon: UserCog, end: true },
-  { to: '/tutor/subjects', label: 'Môn dạy', icon: BookOpen, end: false },
-  { to: '/tutor/availability', label: 'Lịch rảnh', icon: CalendarDays, end: false },
-  { to: '/tutor/documents', label: 'Giấy tờ', icon: FileText, end: false },
-  { to: '/tutor/account', label: 'Tài khoản', icon: Settings, end: false },
-]
-
 /** Hướng dẫn việc cần làm tiếp theo theo từng trạng thái duyệt. */
 const BANNER: Record<VerificationStatus, { cls: string; icon: typeof Clock; title: string; body: string; cta?: { to: string; label: string } }> = {
   DRAFT: {
     cls: 'border-slate-200 bg-slate-50 text-slate-900',
     icon: Upload,
     title: 'Hồ sơ đang là bản nháp — phụ huynh chưa tìm thấy bạn',
-    body: 'Hoàn thiện tiêu đề, trình độ, học phí ở tab Hồ sơ; thêm ít nhất một môn dạy; tải giấy tờ CCCD/CMND rồi bấm “Nộp hồ sơ duyệt” ở tab Giấy tờ.',
+    body: 'Hoàn thiện tiêu đề, trình độ, học phí ở mục Hồ sơ; thêm ít nhất một môn dạy; tải giấy tờ CCCD/CMND rồi bấm “Nộp hồ sơ duyệt” ở mục Giấy tờ.',
     cta: { to: '/tutor/documents', label: 'Kiểm tra điều kiện và nộp hồ sơ' },
   },
   PENDING: {
@@ -56,20 +43,14 @@ const BANNER: Record<VerificationStatus, { cls: string; icon: typeof Clock; titl
     cls: 'border-red-200 bg-red-50 text-red-900',
     icon: AlertTriangle,
     title: 'Hồ sơ bị từ chối',
-    body: 'Kiểm tra lại thông tin ở tab Hồ sơ và giấy tờ ở tab Giấy tờ (giấy tờ chưa hợp lệ sẽ hiển thị trạng thái “Không hợp lệ”), sửa xong rồi nộp lại để được xét duyệt.',
-    cta: { to: '/tutor/documents', label: 'Mở tab Giấy tờ' },
+    body: 'Kiểm tra lại thông tin ở mục Hồ sơ và giấy tờ ở mục Giấy tờ (giấy tờ chưa hợp lệ sẽ hiển thị trạng thái “Không hợp lệ”), sửa xong rồi nộp lại để được xét duyệt.',
+    cta: { to: '/tutor/documents', label: 'Mở mục Giấy tờ' },
   },
 }
 
 export default function TutorArea() {
   const profileQuery = useQuery({ queryKey: ['tutor', 'me'], queryFn: fetchMyTutorProfile })
   const profile = profileQuery.data
-
-  const tabClass = ({ isActive }: { isActive: boolean }) =>
-    clsx(
-      'flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition',
-      isActive ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100',
-    )
 
   return (
     <div className="space-y-6">
@@ -91,24 +72,16 @@ export default function TutorArea() {
 
       {profile && <StatusBanner status={profile.verificationStatus} publicProfileId={profile.userId} />}
 
-      <div className="grid gap-6 lg:grid-cols-[210px_1fr]">
-        <nav className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
-          {TABS.map(({ to, label, icon: Icon, end }) => (
-            <NavLink key={to} to={to} end={end} className={tabClass}>
-              <Icon className="size-4" /> {label}
-            </NavLink>
-          ))}
-        </nav>
-        <section className="min-w-0">
-          <Routes>
-            <Route index element={<ProfileTab />} />
-            <Route path="subjects" element={<SubjectsTab />} />
-            <Route path="availability" element={<AvailabilityTab />} />
-            <Route path="documents" element={<DocumentsTab />} />
-            <Route path="account" element={<AccountTab />} />
-          </Routes>
-        </section>
-      </div>
+      {/* Điều hướng giữa các trang hồ sơ nằm ở sidebar (Gia sư > Hồ sơ của tôi) nên khu vực này chỉ còn nội dung. */}
+      <section className="min-w-0">
+        <Routes>
+          <Route index element={<ProfileTab />} />
+          <Route path="subjects" element={<SubjectsTab />} />
+          <Route path="availability" element={<AvailabilityTab />} />
+          <Route path="documents" element={<DocumentsTab />} />
+          <Route path="account" element={<AccountTab />} />
+        </Routes>
+      </section>
     </div>
   )
 }

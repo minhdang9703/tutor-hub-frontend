@@ -3,10 +3,18 @@ import { useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { ApiClientError } from '../api/client'
 
+/** Backend trả message tiếng Anh; người dùng chỉ thấy bản tiếng Việt khi mã lỗi đã biết. */
+const MESSAGE_VI: Record<string, string> = {
+  REVIEW_EXISTS: 'Buổi học này đã được đánh giá.',
+  TUTOR_UNAVAILABLE: 'Gia sư không trống trong khung giờ này.',
+  CANCELLATION_WINDOW_CLOSED: 'Đã quá thời hạn cho phép để hủy buổi học.',
+  BOOKING_NOT_STARTED: 'Buổi học chưa bắt đầu nên chưa thể đánh dấu hoàn thành.',
+}
+
 export function showApiError(error: unknown) {
   if (error instanceof ApiClientError) {
     const detail = typeof error.details?.['message'] === 'string' ? `: ${error.details['message']}` : ''
-    toast.error(`${error.message}${detail}`)
+    toast.error(`${MESSAGE_VI[error.code] ?? error.message}${detail}`)
     return
   }
   if (error instanceof Error) toast.error(error.message)

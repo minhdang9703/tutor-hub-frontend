@@ -8,7 +8,6 @@ import { fetchChildren } from '../../api/parent'
 import type { RecurringBookingInput, SessionMode, TutorCard } from '../../api/types'
 import { SESSION_MODE_LABEL, DAY_LABELS } from '../../lib/labels'
 import { formatVnd } from '../../lib/format'
-import { showApiError } from '../../lib/useMutationErrorToast'
 import { Button, Input, Select } from '../../components/ui'
 import { invalidateBooking } from './bookingLogic'
 import TutorSearchSelect from './TutorSearchSelect'
@@ -84,7 +83,7 @@ export default function NewRecurringDialog({ onClose }: Props) {
       if (res.created.length) toast.success(`Đã tạo ${res.created.length} buổi học.`)
       else toast('Không tạo được buổi nào vì gia sư đã kín lịch trong các tuần đó.')
     },
-    onError: (error) => showApiError(error),
+    // MutationErrorToaster toàn cục lo phần toast lỗi; khai báo onError ở đây sẽ nhân đôi toast.
   })
 
   function pickRate(nextTutor: TutorCard) {

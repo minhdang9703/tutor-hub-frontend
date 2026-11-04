@@ -6,7 +6,6 @@ import { createReview } from '../../api/booking'
 import { ApiClientError } from '../../api/client'
 import type { Booking } from '../../api/types'
 import { formatDateTime } from '../../lib/format'
-import { showApiError } from '../../lib/useMutationErrorToast'
 import { Button, Textarea } from '../../components/ui'
 import { invalidateBooking, useSubjectNames } from './bookingLogic'
 
@@ -22,10 +21,12 @@ const RATING_LABEL: Record<number, string> = {
 
 interface Props {
   booking: Booking
+  /** Cha gọi để vô hiệu hóa nút "Đánh giá" của chính buổi học này. */
+  onReviewed: () => void
   onClose: () => void
 }
 
-export default function ReviewDialog({ booking, onClose }: Props) {
+export default function ReviewDialog({ booking, onReviewed, onClose }: Props) {
   const queryClient = useQueryClient()
   const subjectNames = useSubjectNames()
   const [rating, setRating] = useState(5)
@@ -34,19 +35,19 @@ export default function ReviewDialog({ booking, onClose }: Props) {
   const mutation = useMutation({
     mutationFn: () => createReview(booking.id, rating, comment.trim() || undefined),
     onSuccess: () => {
+      onReviewed()
       invalidateBooking(queryClient, booking.id)
       queryClient.invalidateQueries({ queryKey: ['tutor', booking.tutorId] })
       toast.success('Cảm ơn bạn đã đánh giá buổi học.')
       onClose()
     },
     onError: (error) => {
-      if (error instanceof ApiClientError && (error.code === 'REVIEW_ALREADY_EXISTS' || error.status === 409)) {
-        toast.error('Buổi học này đã được đánh giá.')
+      // Toast lỗi (cả 409 REVIEW_EXISTS) do MutationErrorToaster toàn cục hiển thị; ở đây chỉ ghi nhận đã đánh giá rồi đóng.
+      if (error instanceof ApiClientError && (error.code === 'REVIEW_EXISTS' || error.status === 409)) {
+        onReviewed()
         invalidateBooking(queryClient, booking.id)
         onClose()
-        return
       }
-      showApiError(error)
     },
   })
 
